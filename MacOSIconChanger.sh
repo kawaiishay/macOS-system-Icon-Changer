@@ -1,8 +1,12 @@
 #!/bin/bash
 
-echo "+--------------------------------+"
-echo "| macOS Icon Changer by ConradZn |"
-echo "+--------------------------------+"
+echo "+-----------------------------------------------------+"
+echo "|           MacOS Icon Changer by ConradZn            |"
+echo "| https://github.com/ConradZn/MOIC-macOS-Icon-Changer |"
+echo "|            -  Modified by kawaiishay                |"
+echo "+-----------------------------------------------------+"
+
+echo "$PATH"
 
 echo ""
 echo "Root password will be required. To enable root user, see:"
@@ -28,19 +32,101 @@ then
   exit 1
 fi
 
+# Check if homebrew is installed & then install glow if not already present on system
+# 1. Check if Homebrew itself is installed
+if ! command -v brew &> /dev/null; then
+    echo "Homebrew is not installed."
+    read -p "Would you like to install Homebrew first? (y/n): " install_brew
+    if [[ "$install_brew" =~ ^[Yy]$ ]]; then
+        echo "Installing Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        
+        # Ensure brew is available in the current script environment after installation
+        # For Apple Silicon Macs:
+        if [ -f /opt/homebrew/bin/brew ]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+        # For Intel Macs:
+        elif [ -f /usr/local/bin/brew ]; then
+            eval "$(/usr/local/bin/brew shellenv)"
+        fi
+    else
+        echo "Exiting because Homebrew is required."
+        exit 1
+    fi
+fi
+
+install_glow()
+{
+  read -p "Do you want to install glow via Homebrew? (y/n): " confirm
+  if [[ "$confirm" =~ ^[Yy]$ ]]; then
+      echo "Installing glow..."
+      brew install glow
+  elif [[ "$confirm" =~ ^[Nn]$ ]]; then
+      echo "Skipping installation of glow."
+  else
+      echo "Invalid input. Please enter 'y' or 'n'."
+      install_glow 
+  fi
+}
+
+# 2. Check if the specific Homebrew app is installed
+if brew list "glow" &> /dev/null; then
+    echo "glow is already installed."
+else
+    echo '`glow` is not installed. You will not be able to view the README.md help file without it.'
+    install_glow
+fi
+
 echo "What do you want to change?"
 echo "  [1] System Application Icons"
 echo "  [2] Change Finder Icon"
 echo ""
+echo "Or view the ReadMe.md file in Terminal for more information: [?]"
+echo ""
 
-printf "[Choose between 1 or 2. Just type the number.]: "
+printf "[Choose between 1, 2, or ?. Just type the number/symbol]: "
 read selection
 
-if [ "$selection" != "1" ] && [ "$selection" != "2" ]
+check_valid() {
+  if [ "$1" != "1" ] && [ "$1" != "2" ]
+  then
+    echo ""
+    read -n 1 -s -r -p "Invalid Selection. Exiting, press any key to continue..."
+    exit 1
+  fi
+}
+
+continue_changing(){
+  printf "Do you want to continue with changing icons? [Y/n]: "
+  read selection
+  if [ "$selection" == "Y" ] || [ "$selection" == "y" ]
+  then
+    echo ""
+    printf "[Choose between the original system icon change options above. Just type the number]: "
+    read selection
+  elif [ "$selection" == "N" ] || [ "$selection" == "n" ]
+  then
+    echo ""
+    read -n 1 -s -r -p "Exiting, press any key to continue..."
+    exit 1
+  else
+    echo ""
+    echo "Invalid Selection. Try again ..."
+    continue_changing
+  fi
+}
+
+if [ "$selection" == "?" ]
 then
-  echo ""
-  echo "Invalid Selection. Exiting..."
-  exit 1
+  if brew list "glow" &> /dev/null; then
+    glow "/Users/shaynahjackson/Documents/- Miscellaneous/- MacOS Knowledge Dump & Tools/- Application Download Files/SystemIconChangers/MacOS Icon Changer/README.md"
+    continue_changing
+  else
+    echo "glow is not installed, the markdown file cannot be displayed."
+    continue_changing
+  fi
+else
+  check_valid selection
 fi
 
 mkdir -p /tmp/mount
